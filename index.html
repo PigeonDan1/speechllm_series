@@ -1,0 +1,40 @@
+---
+layout: default
+title: Speech LLM Arena
+description: A curated collection of Speech Understanding Large Language Models
+---
+
+<section class="hero">
+  <div class="container">
+    <h2>Speech LLM Arena</h2>
+    <p class="hero-description">
+      A comprehensive collection of Speech Understanding Large Language Models (Speech LLMs). 
+      Explore the latest advances in speech processing, from early pioneers to cutting-edge multimodal systems.
+    </p>
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="stat-value">{{ site.data.models.models | size }}</span>
+        <span class="stat-label">Models</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">2022-2025</span>
+        <span class="stat-label">Timeline</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">∞</span>
+        <span class="stat-label">Possibilities</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="models-section">
+  <div class="container">
+    <div class="models-grid">
+      {% assign sorted_models = site.data.models.models | sort: 'year' | reverse %}
+      {% for model in sorted_models %}
+        {% include model-card.html %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
