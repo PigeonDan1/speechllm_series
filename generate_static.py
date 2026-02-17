@@ -9,7 +9,7 @@ import re
 from datetime import datetime
 
 # Read the models data
-with open('/pengjing/workspace/github/speechllm_series/_data/models.yml', 'r') as f:
+with open('_data/models.yml', 'r', encoding='utf-8') as f:
     data = yaml.safe_load(f)
     models = data['models']
 
@@ -92,6 +92,19 @@ def generate_model_card(model):
         </a>
         '''
     
+    # Generic weights button (for ModelScope, Dropbox, Zenodo, etc.)
+    if model.get('weights_url'):
+        links_html += f'''
+        <a href="{model['weights_url']}" class="link-btn weights" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Weights
+        </a>
+        '''
+    
     # Architecture info
     arch_html = ""
     if model.get('architecture') and model['architecture'] != 'Unknown':
@@ -146,7 +159,7 @@ for model in models_sorted:
     cards_html += generate_model_card(model)
 
 # Read SCSS and convert to CSS (basic conversion)
-with open('/pengjing/workspace/github/speechllm_series/assets/css/main.scss', 'r') as f:
+with open('assets/css/main.scss', 'r', encoding='utf-8') as f:
     scss_content = f.read()
 
 # Simple SCSS to CSS conversion (remove nesting, convert variables)
@@ -503,6 +516,16 @@ body {
   color: #000;
 }
 
+.link-btn.weights {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.link-btn.weights:hover {
+  background: #3b82f6;
+  color: white;
+}
+
 .license {
   font-size: 12px;
   color: var(--text-secondary);
@@ -673,13 +696,13 @@ html_content = f'''<!DOCTYPE html>
 </html>'''
 
 # Write the generated HTML
-output_dir = '/pengjing/workspace/github/speechllm_series/_site'
+output_dir = '_site'
 import os
 os.makedirs(output_dir, exist_ok=True)
 
-with open(f'{output_dir}/index.html', 'w') as f:
+with open(f'{output_dir}/index.html', 'w', encoding='utf-8') as f:
     f.write(html_content)
 
-print(f"✅ Static site generated successfully!")
-print(f"📁 Location: {output_dir}/index.html")
-print(f"📊 Total models: {len(models)}")
+print(f"Static site generated successfully!")
+print(f"Location: {output_dir}/index.html")
+print(f"Total models: {len(models)}")
