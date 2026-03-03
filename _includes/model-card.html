@@ -65,6 +65,22 @@
           Paper
         </a>
       {% endif %}
+
+      {% if model.name == "FireRedASR-LLM" or model.name == "Kimi-Audio" or model.name == "Qwen3-Omni" or model.name == "Qwen2-Audio" %}
+        <button
+          type="button"
+          class="link-btn performance-trigger"
+          data-performance-model="{% if model.name == 'Qwen2-Audio' %}Qwen2-audio{% else %}{{ model.name }}{% endif %}"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-label="Open performance details for {{ model.name }}"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          Performance
+        </button>
+      {% endif %}
       
       {% if model.github_url != "" %}
         <a href="{{ model.github_url }}" class="link-btn github" target="_blank" rel="noopener">

@@ -28,8 +28,248 @@ description: A curated collection of Speech Understanding Large Language Models
   </div>
 </section>
 
+<section class="framework-overview-section" id="framework-overview">
+  <div class="container">
+    <div class="framework-overview-header">
+      <h2>Framework Overview</h2>
+      <p>Two complementary views of the SURE evaluation space and execution pipeline.</p>
+    </div>
+    <div class="framework-layout">
+      {% assign track_space_img = '/assets/figures/sunburst-borderRadius.png' | relative_url %}
+      {% assign pipeline_img = '/assets/figures/sure_structure.png' | relative_url %}
+
+      <article class="framework-card framework-main">
+        <header class="framework-card-header">
+          <h3>Evaluation Space (Two Tracks)</h3>
+          <p>SURE covers perception → cognition across tasks and stressors.</p>
+        </header>
+        <button
+          class="framework-lightbox-trigger"
+          type="button"
+          data-src="{{ track_space_img }}"
+          data-alt="Sunburst overview of SURE evaluation space with two tracks"
+          aria-label="Open evaluation space figure"
+        >
+          <img
+            class="framework-image"
+            src="{{ track_space_img }}"
+            alt="Sunburst overview of SURE evaluation space with two tracks"
+          >
+        </button>
+        <!-- <ul class="framework-bullets">
+          <li>Track I: tasks (ASR/GR/S2TT/SER/SLU) and depth (shallow/deep)</li>
+          <li>Track II: stressors split into Acoustic (noise/dialect/reverb) and Linguistic (context/hotwords/...)</li>
+          <li>Inner ring: Perception vs Recognition</li>
+        </ul> -->
+        <div class="framework-legend">
+          <div class="legend-chip-group" id="framework-legend-chips" role="group" aria-label="Framework legend chips">
+            <button type="button" class="legend-chip is-active" data-key="perception">Perception</button>
+            <button type="button" class="legend-chip" data-key="recognition">Recognition</button>
+            <button type="button" class="legend-chip" data-key="track1">Track I</button>
+            <button type="button" class="legend-chip" data-key="track2">Track II</button>
+          </div>
+          <p id="framework-legend-text" class="legend-explainer">
+            Perception focuses on low-level signal interpretation before task-level semantic scoring.
+          </p>
+        </div>
+        <div class="framework-links">
+          <a href="#track1-results">Jump to Track I results</a>
+          <a href="#track2-results">Jump to Track II results</a>
+        </div>
+      </article>
+
+      <div class="framework-side">
+        <article class="framework-card">
+          <header class="framework-card-header">
+            <h3>Reproducible Evaluation Pipeline</h3>
+            <p>Unified post-processing, metrics, and agent-based verification.</p>
+          </header>
+          <button
+            class="framework-lightbox-trigger"
+            type="button"
+            data-src="{{ pipeline_img }}"
+            data-alt="SURE pipeline diagram for reproducible evaluation"
+            aria-label="Open pipeline figure"
+          >
+            <img
+              class="framework-image"
+              src="{{ pipeline_img }}"
+              alt="SURE pipeline diagram for reproducible evaluation"
+            >
+          </button>
+          <!-- <ol class="pipeline-steps">
+            <li>Model Zoo → Track Router</li>
+            <li>Evaluation Pipeline: answer normalization + task/metric selection</li>
+            <li>Agent-based validation loop: analyze → plan → implement → verify/test</li>
+            <li>Report with success/failure checks</li>
+          </ol> -->
+          <!-- <aside class="pipeline-callout">
+            Same normalization and scoring across models ⇒ reproducible comparison.
+          </aside> -->
+        </article>
+
+        <article class="framework-card standardize-card">
+          <header class="framework-card-header">
+            <h3>What we standardize</h3>
+            <!-- <p>Core controls for fair and reproducible cross-model evaluation.</p> -->
+          </header>
+          <ul class="standardize-list">
+            <li>Answer normalization before any task-specific metric computation.</li>
+            <li>Dataset-aligned metric definitions and direction-aware scoring.</li>
+            <li>Format checks for structured outputs and parser compatibility.</li>
+            <li>Failure reporting with explicit pass/fail and missing-output traces.</li>
+            <li>Versioned configs for prompts, routing, and evaluation settings.</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+
+    <div id="framework-lightbox" class="framework-lightbox is-hidden" role="dialog" aria-modal="true" aria-label="Figure viewer">
+      <div class="framework-lightbox-backdrop" data-close-lightbox></div>
+      <div class="framework-lightbox-content">
+        <button class="framework-lightbox-close" type="button" aria-label="Close figure viewer" data-close-lightbox>
+          Close
+        </button>
+        <img id="framework-lightbox-image" src="" alt="">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="results-section" id="results">
+  <div class="container">
+    <div class="results-section-header">
+      <h2>Results</h2>
+      <p>
+        Major evaluation outcomes from Track I stress testing and Track II full-stack tasks.
+      </p>
+    </div>
+
+    <article class="results-track" id="track1-results">
+      <header class="results-track-header">
+        <p class="track-label">Track I · Stress Tests</p>
+        <h3>Track I · Scenario Stress Tests</h3>
+        <p class="track-subtitle">Evaluation under linguistic and acoustic stressors.</p>
+      </header>
+
+      <ul class="results-takeaways">
+        <!-- <li>Linguistic stressors: code-switching and contextual/hotword sensitivity</li>
+        <li>Acoustic stressors: dialect, noise, and noise+reverberation</li> -->
+        <li>RPS provides normalized comparison across scenarios</li>
+      </ul>
+
+      <div class="results-controls">
+        <div class="control-group">
+          <span class="control-label">Metric</span>
+          <div class="segmented-control" id="track1-metric-toggle" role="group" aria-label="Track I metric view">
+            <button type="button" class="is-active" data-mode="raw">Raw</button>
+            <button type="button" data-mode="rps">RPS</button>
+            <button type="button" data-mode="both">Both</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="track1-sort">Sort by</label>
+          <select id="track1-sort"></select>
+        </div>
+
+        <div class="control-group control-search">
+          <label class="control-label" for="track1-model-search">Model filter</label>
+          <input id="track1-model-search" type="search" placeholder="Search model..." autocomplete="off">
+        </div>
+
+        <label class="control-checkbox">
+          <input id="track1-highlight-best" type="checkbox" checked>
+          Highlight best per column
+        </label>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="track1-table" class="results-table track1-table"></table>
+      </div>
+
+      <details class="results-details">
+        <summary>How to read this table</summary>
+        <div class="details-content">
+          <p>Raw is the direct error rate for each scenario.</p>
+          <p>RPS is a normalized score relative to the best-performing system in that condition.</p>
+          <p>Use RPS for cross-scenario comparison when scales differ across datasets.</p>
+        </div>
+      </details>
+
+      <button id="track1-download" class="download-btn" type="button">Download CSV</button>
+    </article>
+
+    <article class="results-track" id="track2-results">
+      <header class="results-track-header">
+        <p class="track-label">Track II · Horizontal Task Evaluation</p>
+        <h3>Track II · Full-stack Task Evaluation</h3>
+        <p class="track-subtitle">Unified scoring across perception and reasoning tasks.</p>
+      </header>
+
+      <ul class="results-takeaways">
+        <li>Task-first view surfaces performance per benchmark without collapsing task semantics.</li>
+        <li>Unified rank view enables direct comparison across heterogeneous metrics.</li>
+        <li>Dataset-level ranking exposes consistency versus specialization trade-offs.</li>
+      </ul>
+
+      <div class="results-controls results-controls-track2">
+        <div class="control-group control-task-chips">
+          <span class="control-label">Task filter</span>
+          <div class="task-chip-group" id="track2-task-chips" role="group" aria-label="Track II task filter">
+            <button type="button" class="task-chip is-active" data-task="ASR">ASR</button>
+            <button type="button" class="task-chip is-active" data-task="GR">GR</button>
+            <button type="button" class="task-chip is-active" data-task="S2TT">S2TT</button>
+            <button type="button" class="task-chip is-active" data-task="SER">SER</button>
+            <button type="button" class="task-chip is-active" data-task="SLU">SLU</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">View mode</span>
+          <div class="segmented-control" id="track2-view-toggle" role="group" aria-label="Track II view mode">
+            <button type="button" class="is-active" data-view="cards">Task cards</button>
+            <button type="button" data-view="unified">Unified view (rank heatmap)</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="track2-task-cards" class="track2-task-cards"></div>
+
+      <div id="track2-unified-view" class="track2-unified-view is-hidden">
+        <div class="table-wrapper">
+          <table id="track2-unified-table" class="results-table track2-unified-table"></table>
+        </div>
+      </div>
+
+      <details class="results-details">
+        <summary>How to read this table</summary>
+        <div class="details-content">
+          <p>Task cards present original task metrics directly (WER/CER: lower is better; others: higher is better).</p>
+          <p>Unified view converts each dataset row into rank positions, where rank 1 is best.</p>
+          <p>Hover a unified-view cell to inspect the original metric value behind each rank.</p>
+        </div>
+      </details>
+
+      <button id="track2-download" class="download-btn" type="button">Download CSV</button>
+
+      <aside class="results-callout">
+        <ul>
+          <li>Cascaded systems remain competitive under unified scoring.</li>
+          <li>Emotion recognition remains challenging.</li>
+          <li>Instruction-following models may suffer formatting-induced metric penalties.</li>
+        </ul>
+      </aside>
+    </article>
+  </div>
+</section>
+
 <section class="models-section">
   <div class="container">
+    <div class="models-heading">
+      <h3>Speech LLM Models</h3>
+      <p>{{ site.data.models.models | size }} curated models across the SURE timeline</p>
+    </div>
     <div class="models-grid">
       {% assign sorted_models = site.data.models.models | sort: 'year' | reverse %}
       {% for model in sorted_models %}
