@@ -1,0 +1,488 @@
+---
+layout: default
+title: Leaderboard
+description: Leaderboard view of Speech LLM models
+permalink: /leaderboard/
+---
+
+<section class="leaderboard-section">
+  <div class="container">
+    <header class="section-header">
+      <h2>Leaderboard</h2>
+      <p>Multi-dataset evaluation metrics for Track 1, Track 2 and Track 3.</p>
+    </header>
+
+    {% assign track1_rows = site.data.track1 %}
+    {% assign track2_rows = site.data.track2 %}
+    {% assign track3_rows = site.data.track3 %}
+    {% assign track_info = site.data.track.tracks %}
+
+    {% if track1_rows or track2_rows or track3_rows %}
+      <div class="leaderboard-layout">
+        <aside class="leaderboard-sidebar">
+          <button class="track-tab active" data-track="1">Track 1</button>
+          <button class="track-tab" data-track="2">Track 2</button>
+          <button class="track-tab" data-track="3">Track 3</button>
+        </aside>
+
+        <div class="leaderboard-main">
+          {% if track1_rows and track1_rows.size > 3 %}
+            {% assign meta_type = track1_rows[0] %}
+            {% assign meta_name = track1_rows[1] %}
+            {% assign meta_metric = track1_rows[2] %}
+            {% assign metric_indices = "1,3,5,7,9,11" | split: "," %}
+            {% assign t1_desc = track_info | where: "file", "track1.csv" | first %}
+
+            <div class="track-panel track-panel-active" data-track="1">
+              {% if t1_desc %}
+                <p class="track-description">{{ t1_desc.description }}</p>
+              {% endif %}
+              <div class="leaderboard-filters">
+                <div class="filter-group" data-filter="dataset">
+                  <div class="filter-header">
+                    <span class="filter-label">Dataset</span>
+                  </div>
+                  <div class="filter-body">
+                    <select class="dataset-select" multiple>
+                      {% for idx in metric_indices %}
+                        {% assign key = 'c' | append: idx %}
+                        <option value="{{ forloop.index0 }}" selected>{{ meta_name[key] }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                <div class="filter-group" data-filter="model">
+                  <div class="filter-header">
+                    <span class="filter-label">Please choose the model</span>
+                  </div>
+                  <div class="filter-body">
+                    <select class="model-select" multiple>
+                      {% for row in track1_rows %}
+                        {% if forloop.index0 >= 3 %}
+                          <option value="{{ row.c0 }}" selected>{{ row.c0 }}</option>
+                        {% endif %}
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="leaderboard-table">
+                  <colgroup>
+                    <col class="col-model">
+                    {% for idx in metric_indices %}
+                      <col class="col-dataset-{{ forloop.index0 }}">
+                      <col class="col-dataset-{{ forloop.index0 }}">
+                    {% endfor %}
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th rowspan="3">Model</th>
+                      {% for idx in metric_indices %}
+                        {% assign key = 'c' | append: idx %}
+                        <th colspan="2" class="dataset-col-{{ forloop.index0 }}">{{ meta_type[key] }}</th>
+                      {% endfor %}
+                    </tr>
+                    <tr>
+                      {% for idx in metric_indices %}
+                        {% assign key = 'c' | append: idx %}
+                        <th colspan="2" class="dataset-col-{{ forloop.index0 }}">{{ meta_name[key] }}</th>
+                      {% endfor %}
+                    </tr>
+                    <tr>
+                      {% for idx in metric_indices %}
+                        {% assign next = idx | plus: 1 %}
+                        {% assign raw_key = 'c' | append: idx %}
+                        {% assign rps_key = 'c' | append: next %}
+                        <th class="dataset-col-{{ forloop.index0 }}">{{ meta_metric[raw_key] }}</th>
+                        <th class="dataset-col-{{ forloop.index0 }}">{{ meta_metric[rps_key] }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in track1_rows %}
+                      {% if forloop.index0 >= 3 %}
+                        <tr data-model="{{ row.c0 }}">
+                          <td>{{ row.c0 }}</td>
+                          {% for idx in metric_indices %}
+                            {% assign next = idx | plus: 1 %}
+                            {% assign raw_key = 'c' | append: idx %}
+                            {% assign rps_key = 'c' | append: next %}
+                            <td class="dataset-col-{{ forloop.index0 }}">{{ row[raw_key] }}</td>
+                            <td class="dataset-col-{{ forloop.index0 }}">{{ row[rps_key] }}</td>
+                          {% endfor %}
+                        </tr>
+                      {% endif %}
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          {% endif %}
+
+          {% if track2_rows and track2_rows.size > 0 %}
+            {% assign t2_dataset_row = track2_rows[0] %}
+            {% assign t2_metric_keys = "ASR_librispeech,ASR_aishell1,GR,S2TT,SER,SLU" | split: "," %}
+            {% assign t2_desc = track_info | where: "file", "track2.csv" | first %}
+
+            <div class="track-panel" data-track="2">
+              {% if t2_desc %}
+                <p class="track-description">{{ t2_desc.description }}</p>
+              {% endif %}
+              <div class="leaderboard-filters">
+                <div class="filter-group" data-filter="dataset">
+                  <div class="filter-header">
+                    <span class="filter-label">Dataset</span>
+                  </div>
+                  <div class="filter-body">
+                    <select class="dataset-select" multiple>
+                      {% for key in t2_metric_keys %}
+                        <option value="{{ forloop.index0 }}" selected>{{ t2_dataset_row[key] }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                <div class="filter-group" data-filter="model">
+                  <div class="filter-header">
+                    <span class="filter-label">Please choose the model</span>
+                  </div>
+                  <div class="filter-body">
+                    <select class="model-select" multiple>
+                      {% for row in track2_rows %}
+                        {% if forloop.index0 > 0 %}
+                          <option value="{{ row.Models }}" selected>{{ row.Models }}</option>
+                        {% endif %}
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="leaderboard-table">
+                  <colgroup>
+                    <col class="col-model">
+                    {% for key in t2_metric_keys %}
+                      <col class="col-dataset-{{ forloop.index0 }}">
+                    {% endfor %}
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th rowspan="2">Model</th>
+                      {% for key in t2_metric_keys %}
+                        <th class="dataset-col-{{ forloop.index0 }}">
+                          {% if key contains 'ASR_' %}
+                            ASR
+                          {% else %}
+                            {{ key }}
+                          {% endif %}
+                        </th>
+                      {% endfor %}
+                    </tr>
+                    <tr>
+                      {% for key in t2_metric_keys %}
+                        <th class="dataset-col-{{ forloop.index0 }}">{{ t2_dataset_row[key] }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in track2_rows %}
+                      {% if forloop.index0 > 0 %}
+                        <tr data-model="{{ row.Models }}">
+                          <td>{{ row.Models }}</td>
+                          {% for key in t2_metric_keys %}
+                            <td class="dataset-col-{{ forloop.index0 }}">{{ row[key] }}</td>
+                          {% endfor %}
+                        </tr>
+                      {% endif %}
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          {% endif %}
+
+          {% if track3_rows and track3_rows.size > 0 %}
+            {% assign t3_metric_keys = "ASR(Zh/En),GR,S2TT(En→Zh / Zh→En),SER,SLU" | split: "," %}
+            {% assign t3_desc = track_info | where: "file", "track3.csv" | first %}
+
+            <div class="track-panel" data-track="3">
+              {% if t3_desc %}
+                <p class="track-description">{{ t3_desc.description }}</p>
+              {% endif %}
+              <div class="leaderboard-filters">
+                <div class="filter-group" data-filter="dataset">
+                  <div class="filter-header">
+                    <span class="filter-label">Task</span>
+                  </div>
+                  <div class="filter-body">
+                    <select class="dataset-select" multiple>
+                      {% for key in t3_metric_keys %}
+                        <option value="{{ forloop.index0 }}" selected>{{ key }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                <div class="filter-group" data-filter="model">
+                  <div class="filter-header">
+                    <span class="filter-label">Please choose the model</span>
+                  </div>
+                  <div class="filter-body">
+                    <select class="model-select" multiple>
+                      {% for row in track3_rows %}
+                        <option value="{{ row.Model }}" selected>{{ row.Model }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table class="leaderboard-table">
+                  <colgroup>
+                    <col class="col-model">
+                    {% for key in t3_metric_keys %}
+                      <col class="col-dataset-{{ forloop.index0 }}">
+                    {% endfor %}
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th>Model</th>
+                      {% for key in t3_metric_keys %}
+                        <th class="dataset-col-{{ forloop.index0 }}">{{ key }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in track3_rows %}
+                      <tr data-model="{{ row.Model }}">
+                        <td>{{ row.Model }}</td>
+                        {% for key in t3_metric_keys %}
+                          <td class="dataset-col-{{ forloop.index0 }}">{{ row[key] }}</td>
+                        {% endfor %}
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Choices.js for select-style multi-select filters -->
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+      <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          function attachSelectDecorators(selectElement, choicesInstance) {
+            if (!selectElement) return;
+            const container = selectElement.closest('.choices');
+            if (!container || container.dataset.hasDecorators === 'true') {
+              return;
+            }
+            container.dataset.hasDecorators = 'true';
+
+            const caret = document.createElement('span');
+            caret.className = 'select-caret-indicator';
+            caret.setAttribute('aria-hidden', 'true');
+            caret.textContent = '▾';
+
+            const clearButton = document.createElement('button');
+            clearButton.type = 'button';
+            clearButton.className = 'select-clear-button';
+            clearButton.setAttribute('aria-label', 'Clear selection');
+            clearButton.textContent = '✕';
+
+            clearButton.addEventListener('click', function (event) {
+              event.preventDefault();
+              event.stopPropagation();
+              if (choicesInstance && typeof choicesInstance.removeActiveItems === 'function') {
+                choicesInstance.removeActiveItems();
+              } else if (selectElement.options) {
+                Array.from(selectElement.options).forEach(function (option) {
+                  option.selected = false;
+                });
+              }
+              selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+
+            container.appendChild(caret);
+            container.appendChild(clearButton);
+          }
+
+          function initLeaderboardPanel(panel) {
+            const table = panel.querySelector('.leaderboard-table');
+            const datasetSelect = panel.querySelector('.dataset-select');
+            const modelSelect = panel.querySelector('.model-select');
+            if (!table || !datasetSelect || !modelSelect) return;
+
+            const datasetChoices = new Choices(datasetSelect, {
+              removeItemButton: true,
+              searchPlaceholderValue: 'Search dataset...',
+              shouldSort: false
+            });
+
+            const modelChoices = new Choices(modelSelect, {
+              removeItemButton: true,
+              searchPlaceholderValue: 'Search model...',
+              shouldSort: false
+            });
+
+            attachSelectDecorators(datasetSelect, datasetChoices);
+            attachSelectDecorators(modelSelect, modelChoices);
+
+            function getActiveDatasets() {
+              return new Set(Array.from(datasetSelect.selectedOptions).map(o => o.value));
+            }
+
+            function getActiveModels() {
+              return new Set(Array.from(modelSelect.selectedOptions).map(o => o.value));
+            }
+
+            function applyFilters() {
+              const activeDatasets = getActiveDatasets();
+              const activeModels = getActiveModels();
+
+              const allDatasetCols = table.querySelectorAll('[class*="dataset-col-"]');
+              allDatasetCols.forEach(cell => {
+                const classes = Array.from(cell.classList);
+                const dsClass = classes.find(c => c.indexOf('dataset-col-') === 0);
+                if (!dsClass) return;
+                const idx = dsClass.replace('dataset-col-', '');
+                cell.style.display = activeDatasets.has(idx) ? '' : 'none';
+              });
+
+              const rows = table.querySelectorAll('tbody tr');
+              rows.forEach(row => {
+                const model = row.getAttribute('data-model');
+                row.style.display = activeModels.has(model) ? '' : 'none';
+              });
+            }
+
+            const tbody = table.querySelector('tbody');
+            const originalRows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+            let currentSort = { colIndex: null, direction: 'none' };
+
+            function restoreOriginalOrder() {
+              if (!tbody) return;
+              originalRows.forEach(row => tbody.appendChild(row));
+            }
+
+            function getCellValue(row, colIndex) {
+              const cell = row.children[colIndex];
+              if (!cell) return '';
+              return cell.textContent.trim();
+            }
+
+            function sortByColumn(colIndex, direction) {
+              if (!tbody) return;
+              const rows = Array.from(tbody.querySelectorAll('tr'));
+              const sorted = rows.slice().sort((a, b) => {
+                const aText = getCellValue(a, colIndex);
+                const bText = getCellValue(b, colIndex);
+                const aNum = parseFloat(aText);
+                const bNum = parseFloat(bText);
+                const aIsNum = !isNaN(aNum);
+                const bIsNum = !isNaN(bNum);
+                let cmp = 0;
+                if (aIsNum && bIsNum) {
+                  cmp = aNum - bNum;
+                } else {
+                  cmp = aText.localeCompare(bText, undefined, { numeric: true, sensitivity: 'base' });
+                }
+                return direction === 'asc' ? cmp : -cmp;
+              });
+
+              sorted.forEach(row => tbody.appendChild(row));
+            }
+
+            function clearSortIndicators() {
+              const headers = table.querySelectorAll('thead th[data-sort-state]');
+              headers.forEach(th => {
+                th.removeAttribute('data-sort-state');
+              });
+            }
+
+            function initSorting() {
+              const headerRows = table.querySelectorAll('thead tr');
+              if (!headerRows.length) return;
+              const metricHeaderRow = headerRows[headerRows.length - 1];
+              const metricHeaders = metricHeaderRow.querySelectorAll('th');
+
+              metricHeaders.forEach((th, index) => {
+                const colIndex = 1 + index;
+                th.style.cursor = 'pointer';
+                th.setAttribute('data-col-index', String(colIndex));
+                th.setAttribute('data-sort-state', 'none');
+
+                th.addEventListener('click', function () {
+                  const currentCol = currentSort.colIndex;
+                  const currentDir = currentSort.direction;
+                  let nextDir;
+
+                  if (currentCol !== colIndex || currentDir === 'none') {
+                    nextDir = 'asc';
+                  } else if (currentDir === 'asc') {
+                    nextDir = 'desc';
+                  } else {
+                    nextDir = 'none';
+                  }
+
+                  currentSort.colIndex = colIndex;
+                  currentSort.direction = nextDir;
+
+                  clearSortIndicators();
+
+                  if (nextDir === 'none') {
+                    restoreOriginalOrder();
+                  } else {
+                    sortByColumn(colIndex, nextDir);
+                    th.setAttribute('data-sort-state', nextDir);
+                  }
+
+                  applyFilters();
+                });
+              });
+            }
+
+            datasetSelect.addEventListener('change', applyFilters);
+            modelSelect.addEventListener('change', applyFilters);
+
+            initSorting();
+            applyFilters();
+          }
+
+          function initTrackTabs() {
+            const tabs = document.querySelectorAll('.track-tab');
+            const panels = document.querySelectorAll('.track-panel');
+
+            tabs.forEach(tab => {
+              tab.addEventListener('click', () => {
+                const target = tab.getAttribute('data-track');
+
+                tabs.forEach(t => {
+                  t.classList.toggle('active', t === tab);
+                });
+
+                panels.forEach(panel => {
+                  panel.classList.toggle('track-panel-active', panel.getAttribute('data-track') === target);
+                });
+              });
+            });
+          }
+
+          const trackPanels = document.querySelectorAll('.track-panel');
+          trackPanels.forEach(panel => initLeaderboardPanel(panel));
+          initTrackTabs();
+        });
+      </script>
+    {% else %}
+      <p>No leaderboard data found. Please add _data/track1.csv, _data/track2.csv or _data/track3.csv.</p>
+    {% endif %}
+  </div>
+</section>

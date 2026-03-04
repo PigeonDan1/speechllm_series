@@ -1,0 +1,7 @@
+tracks:
+- file: track1.csv
+  description: Frontend perception evaluation under scenario stress tests
+- file: track2.csv
+  description: Horizontal comparison on speech understanding tasks
+- file: track3.csv
+  description: Task coverage for controlled training

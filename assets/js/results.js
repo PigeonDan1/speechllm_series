@@ -231,15 +231,16 @@
 
   const state = {
     track1: {
-      metricMode: "raw",
-      sortBy: "avgRps",
-      search: "",
+      metricMode: "both",
       highlightBest: true,
       renderedRows: [],
+      activeModels: new Set(track1Rows.map((row) => row.model)),
+      activeDatasets: new Set(track1Columns.map((column) => column.key)),
     },
     track2: {
       viewMode: "cards",
       activeTasks: new Set(track2Tasks.map((task) => task.key)),
+      activeModels: new Set(track2Models.map((model) => model.key)),
     },
   };
 
@@ -332,39 +333,107 @@
 
   function initTrack1() {
     const table = document.getElementById("track1-table");
-    const sortSelect = document.getElementById("track1-sort");
-    const searchInput = document.getElementById("track1-model-search");
+    const metricSelect = document.getElementById("track1-metric-select");
+    const datasetSelect = document.getElementById("track1-dataset-select");
+    const modelSelect = document.getElementById("track1-model-select");
     const highlightCheckbox = document.getElementById("track1-highlight-best");
-    const metricToggle = document.getElementById("track1-metric-toggle");
     const downloadButton = document.getElementById("track1-download");
 
-    if (!table || !sortSelect || !searchInput || !highlightCheckbox || !metricToggle || !downloadButton) {
+    if (!table || !metricSelect || !datasetSelect || !modelSelect || !highlightCheckbox || !downloadButton) {
       return;
     }
 
-    sortSelect.innerHTML = buildTrack1SortOptions();
-    sortSelect.value = state.track1.sortBy;
+    // Metric multi-select: Raw / RPS, mapping to raw/rps/both（默认同时选中 Raw 和 RPS）
+    metricSelect.innerHTML = "";
+    [
+      { value: "raw", label: "Raw" },
+      { value: "rps", label: "RPS" },
+    ].forEach((optionDef) => {
+      const option = document.createElement("option");
+      option.value = optionDef.value;
+      option.textContent = optionDef.label;
+      option.selected = true;
+      metricSelect.appendChild(option);
+    });
 
-    metricToggle.addEventListener("click", (event) => {
-      const button = event.target.closest("button[data-mode]");
-      if (!button) {
-        return;
-      }
+    let metricChoices = null;
+    let datasetChoices = null;
+    let modelChoices = null;
 
-      state.track1.metricMode = button.dataset.mode;
-      metricToggle.querySelectorAll("button").forEach((item) => {
-        item.classList.toggle("is-active", item === button);
+    if (window.Choices) {
+      metricChoices = new window.Choices(metricSelect, {
+        removeItemButton: true,
+        searchPlaceholderValue: "Search metric...",
+        shouldSort: false,
       });
+    }
+
+    // 初始化时 Raw 与 RPS 都被选中，因此同步 state 为 "both"，保证首屏就展示 Raw+RPS 两行
+    state.track1.metricMode = "both";
+
+    metricSelect.addEventListener("change", () => {
+      const selected = new Set(Array.from(metricSelect.selectedOptions).map((o) => o.value));
+      if (selected.has("raw") && selected.has("rps")) {
+        state.track1.metricMode = "both";
+      } else if (selected.has("rps")) {
+        state.track1.metricMode = "rps";
+      } else {
+        state.track1.metricMode = "raw";
+      }
       renderTrack1();
     });
 
-    sortSelect.addEventListener("change", () => {
-      state.track1.sortBy = sortSelect.value;
+    // Dataset multi-select
+    datasetSelect.innerHTML = "";
+    track1Columns.forEach((column) => {
+      const option = document.createElement("option");
+      option.value = column.key;
+      option.textContent = column.dataset;
+      option.selected = true;
+      datasetSelect.appendChild(option);
+    });
+
+    if (window.Choices) {
+      datasetChoices = new window.Choices(datasetSelect, {
+        removeItemButton: true,
+        searchPlaceholderValue: "Search dataset...",
+        shouldSort: false,
+      });
+    }
+
+    datasetSelect.addEventListener("change", () => {
+      const selected = Array.from(datasetSelect.selectedOptions).map((o) => o.value);
+      // 与 leaderboard 一致：当全部取消选择时，不再自动回退为“全部”，而是视为空集合
+      state.track1.activeDatasets = new Set(selected);
       renderTrack1();
     });
 
-    searchInput.addEventListener("input", () => {
-      state.track1.search = searchInput.value.trim().toLowerCase();
+    // Model multi-select
+    modelSelect.innerHTML = "";
+    track1Rows.forEach((row) => {
+      const option = document.createElement("option");
+      option.value = row.model;
+      option.textContent = row.model;
+      option.selected = true;
+      modelSelect.appendChild(option);
+    });
+
+    if (window.Choices) {
+      modelChoices = new window.Choices(modelSelect, {
+        removeItemButton: true,
+        searchPlaceholderValue: "Search model...",
+        shouldSort: false,
+      });
+    }
+
+    if (metricChoices) attachSelectDecorators(metricSelect, metricChoices);
+    if (datasetChoices) attachSelectDecorators(datasetSelect, datasetChoices);
+    if (modelChoices) attachSelectDecorators(modelSelect, modelChoices);
+
+    modelSelect.addEventListener("change", () => {
+      const selected = Array.from(modelSelect.selectedOptions).map((o) => o.value);
+      // 与 leaderboard 一致：全部取消选择时，视为不选中任何模型
+      state.track1.activeModels = new Set(selected);
       renderTrack1();
     });
 
@@ -396,21 +465,40 @@
       return;
     }
 
+    const mode = state.track1.metricMode;
+    const activeDatasets = state.track1.activeDatasets || new Set(track1Columns.map((column) => column.key));
+    const displayColumns = getTrack1DisplayColumns(mode);
     const rows = getFilteredAndSortedTrack1Rows();
     state.track1.renderedRows = rows;
 
-    const mode = state.track1.metricMode;
-    const displayColumns = getTrack1DisplayColumns(mode);
+    // 如果没有选中任何数据集，直接展示提示语
+    if (!displayColumns.length) {
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th class="sticky-col">Model</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="sticky-col value-missing">No datasets selected. Enable one or more datasets above.</td>
+          </tr>
+        </tbody>
+      `;
+      return;
+    }
+
     const bestMap = state.track1.highlightBest ? computeBestPerTrack1Column(rows, displayColumns) : {};
 
     const linguisticColspan = track1Columns
-      .filter((column) => column.group === "Linguistic")
+      .filter((column) => activeDatasets.has(column.key) && column.group === "Linguistic")
       .reduce((sum) => sum + (mode === "both" ? 2 : 1), 0);
     const acousticColspan = track1Columns
-      .filter((column) => column.group === "Acoustic")
+      .filter((column) => activeDatasets.has(column.key) && column.group === "Acoustic")
       .reduce((sum) => sum + (mode === "both" ? 2 : 1), 0);
 
     const scenarioHeaders = track1Columns
+      .filter((column) => activeDatasets.has(column.key))
       .map((column) => {
         const contextTooltip = column.contextRps
           ? '<span class="results-tooltip" tabindex="0" role="note" aria-label="RPS computed using hotword-injection." data-tooltip="RPS computed using hotword-injection.">i</span>'
@@ -427,15 +515,17 @@
       })
       .join("");
 
+    const visibleTrack1Columns = track1Columns.filter((column) => activeDatasets.has(column.key));
+
     const metricHeaders =
       mode === "both"
-        ? track1Columns
+        ? visibleTrack1Columns
             .map(
               () =>
                 '<th>Raw <span class="metric-badge down">↓</span></th><th>RPS <span class="metric-badge up">↑</span></th>'
             )
             .join("")
-        : track1Columns
+        : visibleTrack1Columns
             .map(() =>
               mode === "raw"
                 ? '<th>Raw <span class="metric-badge down">↓</span></th>'
@@ -460,8 +550,8 @@
 
             return `<tr><td class="sticky-col">${escapeHtml(row.model)}</td>${valueCells}</tr>`;
           })
-          .join("")
-      : `<tr><td class="sticky-col">No matching models</td><td colspan="${displayColumns.length}" class="value-missing">Adjust search or sort settings.</td></tr>`;
+            .join("")
+          : `<tr><td class="sticky-col">No matching models</td><td colspan="${displayColumns.length}" class="value-missing">Adjust filters above.</td></tr>`;
 
     table.innerHTML = `
       <thead>
@@ -475,11 +565,17 @@
       </thead>
       <tbody>${bodyRows}</tbody>
     `;
+
+    initSortableTable(table, 1, 0);
   }
 
   function getTrack1DisplayColumns(mode) {
     const columns = [];
+    const activeDatasets = state.track1.activeDatasets || new Set(track1Columns.map((column) => column.key));
     track1Columns.forEach((column) => {
+      if (!activeDatasets.has(column.key)) {
+        return;
+      }
       if (mode === "both" || mode === "raw") {
         columns.push({ id: `${column.key}__raw`, key: column.key, type: "raw" });
       }
@@ -491,30 +587,14 @@
   }
 
   function getFilteredAndSortedTrack1Rows() {
-    const filtered = track1Rows.filter((row) => row.model.toLowerCase().includes(state.track1.search));
-    const sortBy = state.track1.sortBy;
-
-    const sorted = [...filtered].sort((rowA, rowB) => {
-      if (sortBy === "avgRps") {
-        const valueA = computeAverageRps(rowA);
-        const valueB = computeAverageRps(rowB);
-        const cmp = compareNullableNumbers(valueA, valueB, false);
-        return cmp !== 0 ? cmp : rowA.model.localeCompare(rowB.model);
-      }
-
-      const [columnKey, type] = sortBy.split("__");
-      const valueA = rowA[columnKey] ? rowA[columnKey][type] : null;
-      const valueB = rowB[columnKey] ? rowB[columnKey][type] : null;
-      const ascending = type === "raw";
-      const cmp = compareNullableNumbers(valueA, valueB, ascending);
-      return cmp !== 0 ? cmp : rowA.model.localeCompare(rowB.model);
-    });
-
-    return sorted;
+    const activeModels = state.track1.activeModels || new Set(track1Rows.map((row) => row.model));
+    return track1Rows.filter((row) => activeModels.has(row.model));
   }
 
   function computeAverageRps(row) {
+    const activeDatasets = state.track1.activeDatasets || new Set(track1Columns.map((column) => column.key));
     const values = track1Columns
+      .filter((column) => activeDatasets.has(column.key))
       .map((column) => row[column.key].rps)
       .filter((value) => value != null && Number.isFinite(value));
     if (!values.length) {
@@ -539,7 +619,10 @@
 
   function buildTrack1Csv(rows) {
     const header = ["Model"];
-    track1Columns.forEach((column) => {
+    const activeDatasets = state.track1.activeDatasets || new Set(track1Columns.map((column) => column.key));
+    const visibleTrack1Columns = track1Columns.filter((column) => activeDatasets.has(column.key));
+
+    visibleTrack1Columns.forEach((column) => {
       header.push(`${column.label} Raw`);
       header.push(`${column.label} RPS`);
     });
@@ -548,7 +631,7 @@
     const lines = [header.join(",")];
     rows.forEach((row) => {
       const parts = [csvEscape(row.model)];
-      track1Columns.forEach((column) => {
+      visibleTrack1Columns.forEach((column) => {
         const point = row[column.key];
         parts.push(csvValue(point.raw));
         parts.push(csvValue(point.rps));
@@ -561,26 +644,66 @@
   }
 
   function initTrack2() {
-    const chips = document.getElementById("track2-task-chips");
+    const taskSelect = document.getElementById("track2-task-select");
+    const modelSelect = document.getElementById("track2-model-select");
     const viewToggle = document.getElementById("track2-view-toggle");
     const downloadButton = document.getElementById("track2-download");
 
-    if (!chips || !viewToggle || !downloadButton) {
+    if (!taskSelect || !modelSelect || !viewToggle || !downloadButton) {
       return;
     }
 
-    chips.addEventListener("click", (event) => {
-      const button = event.target.closest("button.task-chip");
-      if (!button) {
-        return;
-      }
+    // Task multi-select
+    taskSelect.innerHTML = "";
+    track2Tasks.forEach((task) => {
+      const option = document.createElement("option");
+      option.value = task.key;
+      option.textContent = task.key;
+      option.selected = true;
+      taskSelect.appendChild(option);
+    });
 
-      const task = button.dataset.task;
-      if (state.track2.activeTasks.has(task)) {
-        state.track2.activeTasks.delete(task);
-      } else {
-        state.track2.activeTasks.add(task);
-      }
+    // Model multi-select
+    modelSelect.innerHTML = "";
+    track2Models.forEach((model) => {
+      const option = document.createElement("option");
+      option.value = model.key;
+      option.textContent = model.label;
+      option.selected = true;
+      modelSelect.appendChild(option);
+    });
+
+    let taskChoices = null;
+    let modelChoices = null;
+
+    if (window.Choices) {
+      taskChoices = new window.Choices(taskSelect, {
+        removeItemButton: true,
+        searchPlaceholderValue: "Search task...",
+        shouldSort: false,
+      });
+
+      modelChoices = new window.Choices(modelSelect, {
+        removeItemButton: true,
+        searchPlaceholderValue: "Search model...",
+        shouldSort: false,
+      });
+    }
+
+    if (taskChoices) attachSelectDecorators(taskSelect, taskChoices);
+    if (modelChoices) attachSelectDecorators(modelSelect, modelChoices);
+
+    taskSelect.addEventListener("change", () => {
+      const selected = Array.from(taskSelect.selectedOptions).map((o) => o.value);
+      // 与 leaderboard 一致：全部取消选择时，不再回退为“全部任务”
+      state.track2.activeTasks = new Set(selected);
+      renderTrack2();
+    });
+
+    modelSelect.addEventListener("change", () => {
+      const selected = Array.from(modelSelect.selectedOptions).map((o) => o.value);
+      // 与 leaderboard 一致：全部取消选择时，视为不选中任何模型
+      state.track2.activeModels = new Set(selected);
       renderTrack2();
     });
 
@@ -608,15 +731,9 @@
     const cardsContainer = document.getElementById("track2-task-cards");
     const unifiedContainer = document.getElementById("track2-unified-view");
     const unifiedTable = document.getElementById("track2-unified-table");
-    const chips = document.getElementById("track2-task-chips");
-
-    if (!cardsContainer || !unifiedContainer || !unifiedTable || !chips) {
+    if (!cardsContainer || !unifiedContainer || !unifiedTable) {
       return;
     }
-
-    chips.querySelectorAll(".task-chip").forEach((chip) => {
-      chip.classList.toggle("is-active", state.track2.activeTasks.has(chip.dataset.task));
-    });
 
     const selectedTasks = getSelectedTrack2Tasks();
 
@@ -637,18 +754,21 @@
   }
 
   function renderTrack2Cards(container, tasks) {
+    const activeModels = state.track2.activeModels || new Set(track2Models.map((model) => model.key));
+    const visibleModels = track2Models.filter((model) => activeModels.has(model.key));
+
     if (!tasks.length) {
-      container.innerHTML = '<div class="no-results">No tasks selected. Enable one or more task chips above.</div>';
+      container.innerHTML = '<div class="no-results">No tasks selected. Enable one or more tasks above.</div>';
       return;
     }
 
     container.innerHTML = tasks
       .map((task) => {
-        const headerColumns = track2Models.map((model) => `<th>${escapeHtml(model.label)}</th>`).join("");
+        const headerColumns = visibleModels.map((model) => `<th>${escapeHtml(model.label)}</th>`).join("");
         const rows = task.datasets
           .map((dataset) => {
-            const bestValue = getBestValue(dataset.values, task.direction);
-            const valueCells = track2Models
+            const bestValue = getBestValue(dataset.values, task.direction, activeModels);
+            const valueCells = visibleModels
               .map((model) => {
                 const value = dataset.values[model.key];
                 if (value == null) {
@@ -665,8 +785,10 @@
         return `
           <section class="task-card">
             <div class="task-card-header">
-              <h4>${escapeHtml(task.key)}</h4>
-              <span class="task-direction">${escapeHtml(task.directionLabel)}</span>
+              <div class="task-card-title-row">
+                <h4>${escapeHtml(task.key)}</h4>
+                <span class="task-direction">${escapeHtml(task.directionLabel)}</span>
+              </div>
             </div>
             <table class="task-card-table">
               <thead>
@@ -681,22 +803,34 @@
         `;
       })
       .join("");
+
+    // 为 Track2 Task cards 表格启用“按行表头排序列”的功能
+    const tables = container.querySelectorAll(".task-card-table");
+    tables.forEach((table) => {
+      initRowHeaderColumnSorter(table, {
+        rowHeaderColIndex: 0, // 第 0 列是每行的 Dataset 名称
+        firstModelColIndex: 1, // 从第 1 列开始是各个模型
+      });
+    });
   }
 
   function renderTrack2Unified(table, tasks) {
+    const activeModels = state.track2.activeModels || new Set(track2Models.map((model) => model.key));
+    const visibleModels = track2Models.filter((model) => activeModels.has(model.key));
+
     if (!tasks.length) {
       table.innerHTML =
-        '<tbody><tr><td class="value-missing">No tasks selected. Enable one or more task chips above.</td></tr></tbody>';
+        '<tbody><tr><td class="value-missing">No tasks selected. Enable one or more tasks above.</td></tr></tbody>';
       return;
     }
 
-    const headerColumns = track2Models.map((model) => `<th>${escapeHtml(model.label)}</th>`).join("");
+    const headerColumns = visibleModels.map((model) => `<th>${escapeHtml(model.label)}</th>`).join("");
     const bodyRows = [];
 
     tasks.forEach((task) => {
       task.datasets.forEach((dataset) => {
-        const ranks = rankDataset(dataset.values, task.direction);
-        const rankCells = track2Models
+        const ranks = rankDataset(dataset.values, task.direction, activeModels);
+        const rankCells = visibleModels
           .map((model) => {
             const value = dataset.values[model.key];
             if (value == null) {
@@ -711,7 +845,9 @@
 
         bodyRows.push(`
           <tr>
-            <td>${escapeHtml(task.key)} (${escapeHtml(task.directionLabel)})</td>
+            <td>${escapeHtml(task.key)} <span class="task-direction-inline">${escapeHtml(
+              task.directionLabel
+            )}</span></td>
             <td>${escapeHtml(dataset.name)}</td>
             ${rankCells}
           </tr>
@@ -729,11 +865,17 @@
       </thead>
       <tbody>${bodyRows.join("")}</tbody>
     `;
+    // 为 Track2 Unified 视图启用“按行表头排序列”的功能
+    initRowHeaderColumnSorter(table, {
+      rowHeaderColIndex: 1, // 第 1 列是 Dataset 名称
+      firstModelColIndex: 2, // 从第 2 列开始是各个模型（rank）
+    });
   }
 
-  function rankDataset(valuesByModel, direction) {
+  function rankDataset(valuesByModel, direction, activeModels) {
     const values = track2Models
       .map((model) => ({ key: model.key, value: valuesByModel[model.key] }))
+      .filter((entry) => activeModels.has(entry.key))
       .filter((entry) => entry.value != null && Number.isFinite(entry.value))
       .sort((a, b) => (direction === "down" ? a.value - b.value : b.value - a.value));
 
@@ -744,8 +886,9 @@
     return ranks;
   }
 
-  function getBestValue(valuesByModel, direction) {
+  function getBestValue(valuesByModel, direction, activeModels) {
     const values = track2Models
+      .filter((model) => activeModels.has(model.key))
       .map((model) => valuesByModel[model.key])
       .filter((value) => value != null && Number.isFinite(value));
     if (!values.length) {
@@ -755,13 +898,16 @@
   }
 
   function buildTrack2Csv(tasks) {
-    const header = ["Task", "Dataset", "Direction", ...track2Models.map((model) => model.label)];
+    const activeModels = state.track2.activeModels || new Set(track2Models.map((model) => model.key));
+    const visibleModels = track2Models.filter((model) => activeModels.has(model.key));
+
+    const header = ["Task", "Dataset", "Direction", ...visibleModels.map((model) => model.label)];
     const lines = [header.map(csvEscape).join(",")];
 
     tasks.forEach((task) => {
       task.datasets.forEach((dataset) => {
         const row = [task.key, dataset.name, task.directionLabel];
-        track2Models.forEach((model) => {
+        visibleModels.forEach((model) => {
           row.push(csvValue(dataset.values[model.key]));
         });
         lines.push(row.map(csvEscape).join(","));
@@ -820,5 +966,278 @@
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#39;");
+  }
+
+  function attachSelectDecorators(selectElement, choicesInstance) {
+    if (!selectElement) return;
+    const container = selectElement.closest(".choices");
+    if (!container || container.dataset.hasDecorators === "true") {
+      return;
+    }
+    container.dataset.hasDecorators = "true";
+
+    const caret = document.createElement("span");
+    caret.className = "select-caret-indicator";
+    caret.setAttribute("aria-hidden", "true");
+    caret.textContent = "▾";
+
+    const clearButton = document.createElement("button");
+    clearButton.type = "button";
+    clearButton.className = "select-clear-button";
+    clearButton.setAttribute("aria-label", "Clear selection");
+    clearButton.textContent = "✕";
+
+    clearButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (choicesInstance && typeof choicesInstance.removeActiveItems === "function") {
+        choicesInstance.removeActiveItems();
+      } else if (selectElement.options) {
+        Array.from(selectElement.options).forEach((option) => {
+          option.selected = false;
+        });
+      }
+      selectElement.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    container.appendChild(caret);
+    container.appendChild(clearButton);
+  }
+
+  function initSortableTable(table, firstDataColIndex, headerOffset) {
+    const tbody = table.querySelector("tbody");
+    if (!tbody) {
+      return;
+    }
+
+    const originalRows = Array.from(tbody.querySelectorAll("tr"));
+    let currentSort = { colIndex: null, direction: "none" };
+
+    function restoreOriginalOrder() {
+      originalRows.forEach((row) => tbody.appendChild(row));
+    }
+
+    function getCellValue(row, colIndex) {
+      const cell = row.children[colIndex];
+      if (!cell) return "";
+      return cell.textContent.trim();
+    }
+
+    function sortByColumn(colIndex, direction) {
+      const rows = Array.from(tbody.querySelectorAll("tr"));
+      const sorted = rows.slice().sort((a, b) => {
+        const aText = getCellValue(a, colIndex);
+        const bText = getCellValue(b, colIndex);
+        const aNum = parseFloat(aText);
+        const bNum = parseFloat(bText);
+        const aIsNum = !Number.isNaN(aNum);
+        const bIsNum = !Number.isNaN(bNum);
+        let cmp = 0;
+        if (aIsNum && bIsNum) {
+          cmp = aNum - bNum;
+        } else {
+          cmp = aText.localeCompare(bText, undefined, { numeric: true, sensitivity: "base" });
+        }
+        return direction === "asc" ? cmp : -cmp;
+      });
+
+      sorted.forEach((row) => tbody.appendChild(row));
+    }
+
+    function clearSortIndicators() {
+      const headers = table.querySelectorAll("thead th[data-sort-state]");
+      headers.forEach((th) => {
+        th.removeAttribute("data-sort-state");
+        th.classList.remove("sort-asc", "sort-desc");
+      });
+    }
+
+    const headerRows = table.querySelectorAll("thead tr");
+    if (!headerRows.length) {
+      return;
+    }
+    const metricHeaderRow = headerRows[headerRows.length - 1];
+    const headerCells = metricHeaderRow.querySelectorAll("th");
+    const metricHeaders = Array.from(headerCells).slice(headerOffset);
+
+    metricHeaders.forEach((th, index) => {
+      const colIndex = firstDataColIndex + index;
+      th.style.cursor = "pointer";
+      th.setAttribute("data-col-index", String(colIndex));
+      th.setAttribute("data-sort-state", "none");
+
+      th.addEventListener("click", () => {
+        const currentCol = currentSort.colIndex;
+        const currentDir = currentSort.direction;
+        let nextDir;
+
+        if (currentCol !== colIndex || currentDir === "none") {
+          nextDir = "asc";
+        } else if (currentDir === "asc") {
+          nextDir = "desc";
+        } else {
+          nextDir = "none";
+        }
+
+        currentSort.colIndex = colIndex;
+        currentSort.direction = nextDir;
+
+        clearSortIndicators();
+
+        if (nextDir === "none") {
+          restoreOriginalOrder();
+        } else {
+          sortByColumn(colIndex, nextDir);
+          th.setAttribute("data-sort-state", nextDir);
+          th.classList.add(nextDir === "asc" ? "sort-asc" : "sort-desc");
+        }
+      });
+    });
+  }
+
+  // 通用：点击“行表头”（某一列的单元格，如 Dataset），按该行的值对所有模型列进行排序
+  function initRowHeaderColumnSorter(table, options) {
+    const { rowHeaderColIndex, firstModelColIndex } = options;
+    const tbody = table.querySelector("tbody");
+    const thead = table.querySelector("thead");
+    if (!tbody || !thead) {
+      return;
+    }
+
+    const headerRow = thead.querySelector("tr:last-child");
+    if (!headerRow) {
+      return;
+    }
+
+    const modelCount = headerRow.children.length - firstModelColIndex;
+    if (modelCount <= 0) {
+      return;
+    }
+
+    // 记录初始列顺序的“模型标识”（这里用表头文本作为标识）
+    const initialHeaderCells = Array.from(headerRow.children).slice(firstModelColIndex);
+    const originalModelIds = initialHeaderCells.map((cell) => cell.textContent.trim());
+
+    let currentSort = { rowIndex: null, direction: "none" };
+
+    const bodyRows = Array.from(tbody.querySelectorAll("tr"));
+
+    function applyColumnOrder(order) {
+      // 重排表头中模型列
+      const headerRows = thead.querySelectorAll("tr");
+      headerRows.forEach((row) => {
+        const cells = Array.from(row.children);
+        if (cells.length <= firstModelColIndex) {
+          return;
+        }
+        const modelCells = cells.slice(firstModelColIndex);
+        order.forEach((idx) => {
+          const cell = modelCells[idx];
+          if (cell) {
+            row.appendChild(cell);
+          }
+        });
+      });
+
+      // 重排每一行中模型列
+      bodyRows.forEach((row) => {
+        const cells = Array.from(row.children);
+        if (cells.length <= firstModelColIndex) {
+          return;
+        }
+        const rowHeaderCell = cells[rowHeaderColIndex];
+        const modelCells = cells.slice(firstModelColIndex);
+        order.forEach((idx) => {
+          const cell = modelCells[idx];
+          if (cell) {
+            row.appendChild(cell);
+          }
+        });
+        // 确保行表头仍在原位置
+        if (rowHeaderCell && row.children[rowHeaderColIndex] !== rowHeaderCell) {
+          row.insertBefore(rowHeaderCell, row.children[rowHeaderColIndex]);
+        }
+      });
+    }
+
+    function clearRowSortIndicators() {
+      bodyRows.forEach((row) => {
+        const cell = row.children[rowHeaderColIndex];
+        if (cell) {
+          cell.removeAttribute("data-sort-state");
+        }
+      });
+    }
+
+    bodyRows.forEach((row, rowIndex) => {
+      const headerCell = row.children[rowHeaderColIndex];
+      if (!headerCell) {
+        return;
+      }
+
+      headerCell.style.cursor = "pointer";
+      headerCell.setAttribute("data-sort-state", "none");
+
+      headerCell.addEventListener("click", () => {
+        const isSameRow = currentSort.rowIndex === rowIndex;
+        const currentDir = currentSort.direction;
+        let nextDir;
+
+        if (!isSameRow || currentDir === "none") {
+          nextDir = "asc";
+        } else if (currentDir === "asc") {
+          nextDir = "desc";
+        } else {
+          nextDir = "none";
+        }
+
+        currentSort = { rowIndex, direction: nextDir };
+
+        clearRowSortIndicators();
+
+        if (nextDir === "none") {
+          // 还原：根据初始的模型标识顺序，重新计算当前列顺序的索引映射
+          const headerModelCells = Array.from(headerRow.children).slice(firstModelColIndex);
+          const idToCurrentIndex = new Map();
+          headerModelCells.forEach((cell, index) => {
+            idToCurrentIndex.set(cell.textContent.trim(), index);
+          });
+
+          const restoreOrder = originalModelIds
+            .map((id) => idToCurrentIndex.get(id))
+            .filter((index) => index != null);
+
+          applyColumnOrder(restoreOrder);
+        } else {
+          const modelCellsInRow = Array.from(row.children).slice(firstModelColIndex);
+          const values = modelCellsInRow.map((cell, index) => {
+            const text = cell.textContent.trim();
+            const num = parseFloat(text);
+            return {
+              index,
+              text,
+              value: Number.isNaN(num) ? null : num,
+            };
+          });
+
+          const sorted = values.slice().sort((a, b) => {
+            const aVal = a.value;
+            const bVal = b.value;
+            if (aVal == null && bVal == null) return 0;
+            if (aVal == null) return 1;
+            if (bVal == null) return -1;
+            const cmp = aVal - bVal;
+            return nextDir === "asc" ? cmp : -cmp;
+          });
+
+          const order = sorted.map((entry) => entry.index);
+          applyColumnOrder(order);
+        }
+
+        if (nextDir !== "none") {
+          headerCell.setAttribute("data-sort-state", nextDir);
+        }
+      });
+    });
   }
 })();

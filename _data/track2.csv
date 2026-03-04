@@ -1,0 +1,7 @@
+Models,ASR_librispeech,ASR_aishell1,GR,S2TT,SER,SLU
+Datasets,librispeech,aishell1,librispeech,"Covost2-en/zh(en2zh/zh2en)",iemocap,mmsu-reason
+whisper+LLM(qwen3-7B),"2.90/5.10",5.93,53.69,"18.12/ 53.37",52.62,76.45
+Gemini-3.0-pro,"2.78/ 4.40",3.60,78.50,"15.92 / 15.50",66.56,89.07
+qwen3-omni,"1.70/3.05",1.02,82.74,"46.25 / 50.61",66.16,83.61
+kimi-audio,"2.30/3.83",0.8,92.02,"-/ -",69.38,75.33
+step-audio2-mini,"5.37/7.17",3.64,65.57,"15.92/15.50",69.62,76.20

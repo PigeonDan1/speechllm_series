@@ -16,6 +16,7 @@ Gemfile.lock
 *.swp
 *.swo
 *~
+.devcontainer/
 
 # OS
 .DS_Store

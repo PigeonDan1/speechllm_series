@@ -158,30 +158,44 @@ description: A curated collection of Speech Understanding Large Language Models
         <li>RPS provides normalized comparison across scenarios</li>
       </ul>
 
-      <div class="results-controls">
-        <div class="control-group">
-          <span class="control-label">Metric</span>
-          <div class="segmented-control" id="track1-metric-toggle" role="group" aria-label="Track I metric view">
-            <button type="button" class="is-active" data-mode="raw">Raw</button>
-            <button type="button" data-mode="rps">RPS</button>
-            <button type="button" data-mode="both">Both</button>
+      <div class="results-controls results-controls-track1">
+        <div class="results-controls-row">
+          <div class="control-group">
+            <label class="control-label" for="track1-metric-select">Metric</label>
+            <select id="track1-metric-select" multiple></select>
           </div>
         </div>
 
-        <div class="control-group">
-          <label class="control-label" for="track1-sort">Sort by</label>
-          <select id="track1-sort"></select>
+        <div class="results-controls-row">
+          <div class="control-group">
+            <label class="control-label" for="track1-dataset-select">Dataset</label>
+            <select id="track1-dataset-select" multiple></select>
+          </div>
         </div>
 
-        <div class="control-group control-search">
-          <label class="control-label" for="track1-model-search">Model filter</label>
-          <input id="track1-model-search" type="search" placeholder="Search model..." autocomplete="off">
+        <div class="results-controls-row">
+          <div class="control-group">
+            <label class="control-label" for="track1-model-select">Model</label>
+            <select id="track1-model-select" multiple></select>
+          </div>
         </div>
 
-        <label class="control-checkbox">
-          <input id="track1-highlight-best" type="checkbox" checked>
-          Highlight best per column
-        </label>
+        <div class="results-controls-row results-controls-row-inline">
+          <label class="control-checkbox" for="track1-highlight-best">
+            <input id="track1-highlight-best" type="checkbox" checked>
+            <span>Highlight column leaders</span>
+          </label>
+
+          <button id="track1-download" class="download-btn" type="button">
+            <span class="download-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                <path d="M10 2a.75.75 0 01.75.75v8.19l2.22-2.22a.75.75 0 111.06 1.06l-3.5 3.5a.75.75 0 01-1.06 0l-3.5-3.5a.75.75 0 111.06-1.06l2.22 2.22V2.75A.75.75 0 0110 2z" />
+                <path d="M3.5 13.5a.75.75 0 01.75-.75h11.5a.75.75 0 010 1.5H4.25a.75.75 0 01-.75-.75z" />
+              </svg>
+            </span>
+            <span>Download CSV</span>
+          </button>
+        </div>
       </div>
 
       <div class="table-wrapper">
@@ -196,8 +210,6 @@ description: A curated collection of Speech Understanding Large Language Models
           <p>Use RPS for cross-scenario comparison when scales differ across datasets.</p>
         </div>
       </details>
-
-      <button id="track1-download" class="download-btn" type="button">Download CSV</button>
     </article>
 
     <article class="results-track" id="track2-results">
@@ -214,23 +226,38 @@ description: A curated collection of Speech Understanding Large Language Models
       </ul>
 
       <div class="results-controls results-controls-track2">
-        <div class="control-group control-task-chips">
-          <span class="control-label">Task filter</span>
-          <div class="task-chip-group" id="track2-task-chips" role="group" aria-label="Track II task filter">
-            <button type="button" class="task-chip is-active" data-task="ASR">ASR</button>
-            <button type="button" class="task-chip is-active" data-task="GR">GR</button>
-            <button type="button" class="task-chip is-active" data-task="S2TT">S2TT</button>
-            <button type="button" class="task-chip is-active" data-task="SER">SER</button>
-            <button type="button" class="task-chip is-active" data-task="SLU">SLU</button>
+        <div class="results-controls-row">
+          <div class="control-group">
+            <label class="control-label" for="track2-task-select">Task</label>
+            <select id="track2-task-select" multiple></select>
           </div>
         </div>
 
-        <div class="control-group">
-          <span class="control-label">View mode</span>
-          <div class="segmented-control" id="track2-view-toggle" role="group" aria-label="Track II view mode">
-            <button type="button" class="is-active" data-view="cards">Task cards</button>
-            <button type="button" data-view="unified">Unified view (rank heatmap)</button>
+        <div class="results-controls-row">
+          <div class="control-group">
+            <label class="control-label" for="track2-model-select">Model</label>
+            <select id="track2-model-select" multiple></select>
           </div>
+        </div>
+
+        <div class="results-controls-row results-controls-row-inline">
+          <div class="control-group control-view-group">
+            <span class="control-label">View</span>
+            <div class="segmented-control" id="track2-view-toggle" role="group" aria-label="Track II view mode">
+              <button type="button" class="is-active" data-view="cards">Task cards</button>
+              <button type="button" data-view="unified">Unified view (rank heatmap)</button>
+            </div>
+          </div>
+
+          <button id="track2-download" class="download-btn" type="button">
+            <span class="download-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                <path d="M10 2a.75.75 0 01.75.75v8.19l2.22-2.22a.75.75 0 111.06 1.06l-3.5 3.5a.75.75 0 01-1.06 0l-3.5-3.5a.75.75 0 111.06-1.06l2.22 2.22V2.75A.75.75 0 0110 2z" />
+                <path d="M3.5 13.5a.75.75 0 01.75-.75h11.5a.75.75 0 010 1.5H4.25a.75.75 0 01-.75-.75z" />
+              </svg>
+            </span>
+            <span>Download CSV</span>
+          </button>
         </div>
       </div>
 
@@ -251,8 +278,6 @@ description: A curated collection of Speech Understanding Large Language Models
         </div>
       </details>
 
-      <button id="track2-download" class="download-btn" type="button">Download CSV</button>
-
       <aside class="results-callout">
         <ul>
           <li>Cascaded systems remain competitive under unified scoring.</li>
@@ -263,6 +288,10 @@ description: A curated collection of Speech Understanding Large Language Models
     </article>
   </div>
 </section>
+
+<!-- Choices.js for select-style multi-select filters on the index results tables -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
 <section id="models" class="models-section">
   <div class="container">
